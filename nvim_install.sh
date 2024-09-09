@@ -1,11 +1,21 @@
 #!/bin/zsh
 
+# Check for OS compatibility
+if [[ "$OSTYPE" != "darwin"* ]] && [[ "$OSTYPE" != "linux-gnu"* ]]; then
+    echo "This script is only compatible with macOS and Linux. Exiting."
+    exit 1
+fi
+
+# Check for Homebrew
+if ! command -v brew &> /dev/null; then
+    echo "Homebrew is not installed. Please install Homebrew first. Exiting."
+    exit 1
+fi
+
 # Setup variables
 HOME_DIR="$HOME"
 NVIM_CONFIG_FILE="$HOME_DIR/m_nvim.zsh"
 ZSHRC="$HOME_DIR/.zshrc"
-
-
 
 # Function to print messages in green
 print_green() {
@@ -23,7 +33,7 @@ alias nvim-astro="NVIM_APPNAME=AstroNvim nvim"
 
 function nvims() {
   items=("default" "kickstart" "LazyVim" "NvChad" "AstroNvim")
-  config=$(printf "%s\n" "${items[@]}" | fzf --prompt=" Neovim Config  " --height=50% --layout=reverse --border --exit-0)
+  config=$(printf "%s\n" "${items[@]}" | fzf --prompt=" Neovim Config  " --height=50% --layout=reverse --border --exit-0)
   if [[ -z $config ]]; then
     echo "Nothing selected"
     return 0
@@ -34,7 +44,6 @@ function nvims() {
 }
 
 bindkey -s "^a" "nvims\n"
-
 EOF
 
 # Append sourcing line to .zshrc if not already present
@@ -54,7 +63,7 @@ prompt_for_removal() {
         read -r response
         if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
             rm -rf $distro_dir
-            print_green "$distro_name indicate distribution reinstalled from scratch."
+            print_green "$distro_name distribution reinstalled from scratch."
         else
             print_green "$distro_name existing distribution will be kept."
             return 1 # Return 1 to indicate no reinstallation needed
@@ -69,7 +78,7 @@ distros=(
     ["kickstart"]="https://github.com/nvim-lua/kickstart.nvim.git"
     ["LazyVim"]="https://github.com/LazyVim/starter"
     ["NvChad"]="https://github.com/NvChad/NvChad"
-    ["AstroNvim"]="https://github.com/AstroNvim/AstroNvim"
+    ["AstroNvim"]="https://github.com/AstroNvim/template"
 )
 
 # Clean and reinstall Neovim function
@@ -98,12 +107,20 @@ clean_and_reinstall_nvim() {
 
 # Function to clone Neovim distribution
 clone_distribution() {
-    local url=$1
-    local name=$2
+    local name=$1
     local dir="$HOME/.config/$name"
+
     if prompt_for_removal "$dir" "$name"; then
         print_green "Cloning $name..."
-        git clone --depth 1 $url $dir && print_green "$name installed successfully." || print_green "Failed to clone $name."
+        case $name in
+            "AstroNvim")
+                git clone --depth 1 ${distros[$name]} "$dir" && print_green "$name template installed successfully." || print_green "Failed to clone $name."
+                print_green "To use AstroNvim, run 'nvim' in the $dir directory."
+                ;;
+            *)
+                git clone --depth 1 ${distros[$name]} "$dir" && print_green "$name installed successfully." || print_green "Failed to clone $name."
+                ;;
+        esac
     fi
 }
 
@@ -118,36 +135,8 @@ else
     IFS=' ' read -rA selected_distros <<< "$user_input"
 fi
 
-
 # Clean and reinstall Neovim only if required
 clean_and_reinstall_nvim
-
-# Install or update selected distributions
-clone_distribution() {
-    local name=$1
-    local dir="$HOME/.config/$name"
-
-    if prompt_for_removal "$dir" "$name"; then
-        echo "Cloning $name..."
-        case $name in
-            "AstroNvim")
-                git clone --depth 1 https://github.com/AstroNvim/AstroNvim "$dir" && print_green "$name installed successfully." || echo "Failed to clone $name."
-                ;;
-            "NvChad")
-                git clone https://github.com/NvChad/NvChad "$dir" --depth 1 && print_green "$name installed successfully." || echo "Failed to clone $name."
-                ;;
-            "LazyVim")
-                git clone https://github.com/LazyVim/starter "$dir" && print_green "$name installed successfully." || echo "Failed to clone $name."
-                ;;
-            "kickstart")
-                git clone https://github.com/nvim-lua/kickstart.nvim.git "$dir" && print_green "$name installed successfully." || echo "Failed to clone $name."
-                ;;
-            *)
-                echo "Invalid distribution: $name."
-                ;;
-        esac
-    fi
-}
 
 # Install or update selected distributions
 for distro in "${selected_distros[@]}"; do
@@ -158,6 +147,4 @@ for distro in "${selected_distros[@]}"; do
     fi
 done
 
-
 print_green "Neovim setup and configuration completed."
-
