@@ -19,7 +19,11 @@ ZSHRC="$HOME_DIR/.zshrc"
 
 # Function to print messages in green
 print_green() {
+  if [ -t 1 ]; then
     echo "\033[0;32m$1\033[0m"
+  else
+    echo "$1"
+  fi
 }
 
 # Create Neovim switcher config
