@@ -2,7 +2,11 @@
 
 # Function to print messages in red for visibility
 print_red() {
+  if [ -t 1 ]; then
     echo "\033[0;31m$1\033[0m"
+  else
+    echo "$1"
+  fi
 }
 
 # Define the directories of the Neovim distributions
@@ -42,4 +46,3 @@ print_red "Restart the shell to apply changes."
 
 # restart the shell
 source ~/.zshrc
-
